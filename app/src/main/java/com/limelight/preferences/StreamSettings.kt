@@ -76,6 +76,7 @@ import com.limelight.R
 import com.limelight.ExternalDisplayManager
 import com.limelight.TargetDisplayResolver
 import com.limelight.binding.input.InputDeviceSensorPolicy
+import com.limelight.binding.input.FlydigiButtonMappingActivity
 import com.limelight.binding.input.advance_setting.config.PageConfigController
 import com.limelight.binding.audio.MicrophoneButtonPreferences
 import com.limelight.binding.audio.MicrophoneButtonPositionStore
@@ -3739,6 +3740,12 @@ class StreamSettings : AppCompatActivity() {
             findPreference<Preference>("controller_diagnostic")!!.onPreferenceClickListener =
                     Preference.OnPreferenceClickListener {
                         startActivity(Intent(requireActivity(), ControllerDiagnosticActivity::class.java))
+                        true
+                    }
+
+            findPreference<Preference>("flydigi_button_mapping")!!.onPreferenceClickListener =
+                    Preference.OnPreferenceClickListener {
+                        startActivity(Intent(requireActivity(), FlydigiButtonMappingActivity::class.java))
                         true
                     }
 

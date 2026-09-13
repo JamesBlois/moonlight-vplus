@@ -268,6 +268,12 @@ class KeyboardInputHandler(private val game: Game) {
         }
 
         if (!handled) {
+            // A bound keyboard key that mimics an extended Flydigi button (M1..M4, C, Z,
+            // LM, RM) is turned into the controller flag instead of a keyboard event.
+            if (game.controllerHandler.handleFlydigiKeyboardKeyDown(event)) {
+                return true
+            }
+
             if (handleSpecialKeys(event.keyCode, true)) {
                 return true
             }
@@ -440,6 +446,12 @@ class KeyboardInputHandler(private val game: Game) {
         }
 
         if (!handled) {
+            // A bound keyboard key that mimics an extended Flydigi button (M1..M4, C, Z,
+            // LM, RM) is turned into the controller flag instead of a keyboard event.
+            if (game.controllerHandler.handleFlydigiKeyboardKeyUp(event)) {
+                return true
+            }
+
             if (handleSpecialKeys(event.keyCode, false)) {
                 return true
             }

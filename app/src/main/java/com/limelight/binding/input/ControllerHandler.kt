@@ -371,6 +371,17 @@ class ControllerHandler(
     private val REMAP_IGNORE = -1
     private val REMAP_CONSUME = -2
 
+    // Negative remap codes for Flydigi Vader 5 Pro BT extended buttons. They are
+    // translated into ControllerPacket flags in handleButtonDown/handleButtonUp.
+    private val REMAP_FLYDIGI_M1 = -3
+    private val REMAP_FLYDIGI_M2 = -4
+    private val REMAP_FLYDIGI_M3 = -5
+    private val REMAP_FLYDIGI_M4 = -6
+    private val REMAP_FLYDIGI_C = -7
+    private val REMAP_FLYDIGI_Z = -8
+    private val REMAP_FLYDIGI_LM = -9
+    private val REMAP_FLYDIGI_RM = -10
+
     // ========== Constructor ==========
 
     init {
@@ -1849,6 +1860,23 @@ class ControllerHandler(
             }
         }
 
+        // Flydigi Vader 5 Pro (Bluetooth): extended buttons (M1..M4, C, Z, LM, RM)
+        // are user-mapable from Settings. The physical key reported by Android is
+        // compared against the captured binding and translated to the matching extra
+        // flag instead of the built-in generic mapping (which would otherwise turn
+        // the generic button key codes into triggers/touchpad).
+        val flydigiBinding = PreferenceConfiguration.readFlydigiBtExtraButtons(activityContext)
+        if (flydigiBinding.isNotEmpty() && isFlydigiDevice(event)) {
+            val matchedButton = flydigiBinding.entries.firstOrNull { (_, binding) ->
+                val (boundKeyCode, boundScanCode) = FlydigiButtonRemapper.parseBinding(binding)
+                (boundKeyCode != 0 && boundKeyCode == event.keyCode) ||
+                    (boundScanCode != 0 && boundScanCode == event.scanCode)
+            }?.key
+            if (matchedButton != null) {
+                return buttonToRemapCode(matchedButton)
+            }
+        }
+
         // Past here we can fixup the keycode and potentially trigger
         // another special case so we need to remember what keycode we're using
         var keyCode = event.keyCode
@@ -1892,6 +1920,74 @@ class ControllerHandler(
             KeyEvent.KEYCODE_BUTTON_Y -> KeyEvent.KEYCODE_BUTTON_X
             else -> keyCode
         }
+    }
+
+    /** Matches the Flydigi Vader 5 Pro (VID 0x37d7 / PID 0x2401) regardless of transport. */
+    private fun isFlydigiDevice(event: InputEvent): Boolean {
+        val dev = event.device ?: return false
+        return dev.vendorId == FlydigiButtonRemapper.FLYDIGI_VID &&
+            (dev.productId == 0 || dev.productId == FlydigiButtonRemapper.VADER5_PID)
+    }
+
+    /** Maps a captured Flydigi extended button name to one of the negative remap codes. */
+    private fun buttonToRemapCode(button: String): Int = when (button) {
+        FlydigiButtonRemapper.BTN_M1 -> REMAP_FLYDIGI_M1
+        FlydigiButtonRemapper.BTN_M2 -> REMAP_FLYDIGI_M2
+        FlydigiButtonRemapper.BTN_M3 -> REMAP_FLYDIGI_M3
+        FlydigiButtonRemapper.BTN_M4 -> REMAP_FLYDIGI_M4
+        FlydigiButtonRemapper.BTN_C -> REMAP_FLYDIGI_C
+        FlydigiButtonRemapper.BTN_Z -> REMAP_FLYDIGI_Z
+        FlydigiButtonRemapper.BTN_LM -> REMAP_FLYDIGI_LM
+        FlydigiButtonRemapper.BTN_RM -> REMAP_FLYDIGI_RM
+        else -> REMAP_CONSUME
+    }
+
+    /**
+     * Translates a negative Flydigi remap code to the [ControllerPacket] flag to set
+     * or clear for the given press state.
+     */
+    private fun flydigiRemapFlag(remapCode: Int): Int = when (remapCode) {
+        REMAP_FLYDIGI_M1 -> ControllerPacket.PADDLE1_FLAG
+        REMAP_FLYDIGI_M2 -> ControllerPacket.PADDLE2_FLAG
+        REMAP_FLYDIGI_M3 -> ControllerPacket.PADDLE3_FLAG
+        REMAP_FLYDIGI_M4 -> ControllerPacket.PADDLE4_FLAG
+        else -> ControllerPacket.MISC_FLAG // C, Z, LM, RM all map to the "extra" button set
+    }
+
+    private fun handleFlydigiRemapButton(context: InputDeviceContext, remapCode: Int, pressed: Boolean) {
+        val flag = flydigiRemapFlag(remapCode)
+        context.inputMap = if (pressed) {
+            context.inputMap or flag
+        } else {
+            context.inputMap and flag.inv()
+        }
+    }
+
+    /**
+     * Applied by [KeyboardInputHandler] when the user binds an extended Flydigi
+     * button (M1..M4, C, Z, LM, RM) to a plain keyboard key. The first physical
+     * press wins during capture, so a keyboard key can only ever be assigned to
+     * one Flydigi button; here we turn that press into the matching controller
+     * flag instead of forwarding it as keyboard input.
+     */
+    private fun handleFlydigiKeyboardBinding(event: KeyEvent, pressed: Boolean): Boolean {
+        val bindings = PreferenceConfiguration.readFlydigiBtExtraButtons(activityContext)
+        if (bindings.isEmpty()) return false
+        val matchedButton = bindings.entries.firstOrNull { (_, binding) ->
+            val (boundKeyCode, boundScanCode) = FlydigiButtonRemapper.parseBinding(binding)
+            (boundKeyCode != 0 && boundKeyCode == event.keyCode) ||
+                (boundScanCode != 0 && boundScanCode == event.scanCode)
+        }?.key ?: return false
+        handleFlydigiRemapButton(defaultContext, buttonToRemapCode(matchedButton), pressed)
+        return true
+    }
+
+    internal fun handleFlydigiKeyboardKeyDown(event: KeyEvent): Boolean {
+        return handleFlydigiKeyboardBinding(event, pressed = true)
+    }
+
+    internal fun handleFlydigiKeyboardKeyUp(event: KeyEvent): Boolean {
+        return handleFlydigiKeyboardBinding(event, pressed = false)
     }
 
     // ========== Deadzone & Axis Handling ==========
@@ -2293,6 +2389,11 @@ class ControllerHandler(
         }
         var keyCode = handleRemapping(context, event)
         if (keyCode < 0) {
+            if (keyCode <= REMAP_FLYDIGI_M1) {
+                // Flydigi BT extended button (negative remap code) -> clear the flag.
+                handleFlydigiRemapButton(context, keyCode, pressed = false)
+                return true
+            }
             return (keyCode == REMAP_CONSUME)
         }
 
@@ -2496,6 +2597,11 @@ class ControllerHandler(
         }
         var keyCode = handleRemapping(context, event)
         if (keyCode < 0) {
+            if (keyCode <= REMAP_FLYDIGI_M1) {
+                // Flydigi BT extended button (negative remap code) -> set the flag.
+                handleFlydigiRemapButton(context, keyCode, pressed = true)
+                return true
+            }
             return (keyCode == REMAP_CONSUME)
         }
 

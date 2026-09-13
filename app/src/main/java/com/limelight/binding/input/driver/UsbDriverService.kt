@@ -359,6 +359,8 @@ class UsbDriverService : Service(), UsbDriverListener {
 
             val controller = runCatching {
                 when {
+                    FlydigiVaderController.canClaimDevice(device) ->
+                        FlydigiVaderController(device, connection, ControllerDriverIdAllocator.allocate(), this)
                     XboxOneController.canClaimDevice(device) ->
                         XboxOneController(device, connection, ControllerDriverIdAllocator.allocate(), this)
                     Xbox360Controller.canClaimDevice(device) ->
@@ -860,6 +862,7 @@ class UsbDriverService : Service(), UsbDriverListener {
         @JvmStatic
         fun shouldClaimDevice(device: UsbDevice, claimAllAvailable: Boolean): Boolean {
             return ((!kernelSupportsXboxOne() || !isRecognizedInputDevice(device) || claimAllAvailable) && XboxOneController.canClaimDevice(device)) ||
+                    FlydigiVaderController.canClaimDevice(device) ||
                     ((!isRecognizedInputDevice(device) || claimAllAvailable) && Xbox360Controller.canClaimDevice(device)) ||
                     ((!kernelSupportsXbox360W() || claimAllAvailable) && Xbox360WirelessDongle.canClaimDevice(device)) ||
                     ((!isRecognizedInputDevice(device) || claimAllAvailable) && SwitchProController.canClaimDevice(device)) ||

@@ -51,8 +51,9 @@ abstract class AbstractPlayStationUsbController(
     protected var accelZ = 0f
 
     init {
-        type = MoonBridge.LI_CTYPE_PS
-        capabilities = (MoonBridge.LI_CCAP_GYRO.toInt() or MoonBridge.LI_CCAP_ACCEL.toInt() or MoonBridge.LI_CCAP_RUMBLE.toInt()).toShort()
+        type = driverControllerType
+        val baseCaps = MoonBridge.LI_CCAP_GYRO.toInt() or MoonBridge.LI_CCAP_ACCEL.toInt() or MoonBridge.LI_CCAP_RUMBLE.toInt()
+        capabilities = (baseCaps or extraCapabilities).toShort()
         buttonFlags = ControllerPacket.A_FLAG or ControllerPacket.B_FLAG or ControllerPacket.X_FLAG or ControllerPacket.Y_FLAG or
                 ControllerPacket.UP_FLAG or ControllerPacket.DOWN_FLAG or ControllerPacket.LEFT_FLAG or ControllerPacket.RIGHT_FLAG or
                 ControllerPacket.LB_FLAG or ControllerPacket.RB_FLAG or
@@ -60,6 +61,16 @@ abstract class AbstractPlayStationUsbController(
                 ControllerPacket.BACK_FLAG or ControllerPacket.PLAY_FLAG or ControllerPacket.SPECIAL_BUTTON_FLAG
         supportedButtonFlags = buttonFlags
     }
+
+    /** Controller type reported to the host (defaults to PlayStation-style IMU driver,. */
+    protected open val driverControllerType: Byte = MoonBridge.LI_CTYPE_PS
+
+    /** Extra [MoonBridge.LI_CCAP_*] bits on top of the default GYRO|ACCEL|RUMBLE set. */
+    protected open val extraCapabilities: Int = 0
+
+    /** Locates the HID interface whose endpoints back this driver. Override to pick a
+     *  specific vendor interface when the device exposes multiple HID interfaces. */
+    protected open fun findPreferredInterface(device: UsbDevice): UsbInterface? = findInterface(device)
 
     private fun createInputThread(): Thread {
         return Thread {
@@ -131,7 +142,7 @@ abstract class AbstractPlayStationUsbController(
         }
         Log.d(TAG, "getInterfaceCount:" + device.interfaceCount)
 
-        val iface = findInterface(device) ?: run {
+        val iface = findPreferredInterface(device) ?: run {
             Log.e(TAG, "Failed to find interface")
             return failStart()
         }

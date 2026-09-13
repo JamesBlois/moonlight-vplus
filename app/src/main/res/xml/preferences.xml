@@ -734,6 +734,10 @@
             android:key="controller_diagnostic"
             android:title="@string/title_controller_diagnostic"
             android:summary="@string/summary_controller_diagnostic" />
+        <Preference
+            android:key="flydigi_button_mapping"
+            android:title="@string/title_flydigi_button_mapping"
+            android:summary="@string/summary_flydigi_button_mapping" />
         <com.limelight.preferences.SeekBarPreference
             android:key="seekbar_deadzone"
             android:defaultValue="7"

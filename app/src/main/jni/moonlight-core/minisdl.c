@@ -93,6 +93,15 @@ SDL_bool SDL_IsJoystickXboxSeriesX(Uint16 vendor_id, Uint16 product_id)
             return SDL_TRUE;
         }
     }
+    if (vendor_id == USB_VENDOR_FLYDIGI_V2) {
+        // Vader 5 Pro presents as a standard XInput pad on interface 0,, but the
+        // extended M1-M4 paddles live on on its vendor HID interface.. Android's input
+        // stack exposes the extended buttons as BTN_TRIGGER_HAPPY5-8 (0x2c4-0x2c7)
+        // when the kernel sees the full HID descriptor,, so advertise them here..
+        if (product_id == USB_PRODUCT_FLYDIGI_V2_VADER) {
+            return SDL_TRUE;
+        }
+    }
     return SDL_FALSE;
 }
 

@@ -166,6 +166,7 @@ class XboxOneController(
             0x2dc8, // 8BitDo
             0x2f24, // GameSir
             0x3537, // GameSir (G7 Pro / Cyclone 2 / Kaleid Flux)
+            0x37d7, // Flydigi (Vader 5 Pro — interface 0 XInput path)
         )
 
         private val FW2015_INIT = byteArrayOf(0x05, 0x20, 0x00, 0x01, 0x00)

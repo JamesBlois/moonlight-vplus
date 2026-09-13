@@ -493,6 +493,7 @@ static const ControllerDescription_t arrControllers[] = {
 	{ MAKE_CONTROLLER_ID( 0x2f24,	0x11 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller
 	{ MAKE_CONTROLLER_ID( 0x2f24,	0x53 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller
 	{ MAKE_CONTROLLER_ID( 0x2f24,	0xb7 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller
+	{ MAKE_CONTROLLER_ID( 0x37d7,	0x2401 ), k_eControllerType_XBoxOneController, NULL },	// Flydigi Vader 5 Pro (interface 0 XInput path)
 	{ MAKE_CONTROLLER_ID( 0x46d,	0x0 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller
 	{ MAKE_CONTROLLER_ID( 0x46d,	0x1004 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller
 	{ MAKE_CONTROLLER_ID( 0x46d,	0x1008 ), k_eControllerType_XBoxOneController, NULL },	// Unknown Controller

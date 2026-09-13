@@ -12,6 +12,7 @@ import android.view.Display
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.preference.PreferenceManager
+import com.limelight.binding.input.FlydigiButtonRemapper
 import com.limelight.binding.input.haptics.GameRumbleMode
 import com.limelight.nvstream.jni.MoonBridge
 import kotlin.math.max
@@ -204,11 +205,24 @@ class PreferenceConfiguration {
     var gyroInvertXAxis = false
     // Persistent: invert Y-axis direction for gyro input
     var gyroInvertYAxis = false
+    // Persistent: Flydigi Vader 5 Pro Bluetooth extended button -> physical key bindings
+    var flydigiBtExtraButtons: Map<String, String> = emptyMap()
     // Card visibility
     var showBitrateCard = false
     var showAudioHapticsCard = false
     var showGyroCard = false
     var showQuickKeyCard = false
+
+    /**
+     * Flydigi Vader 5 Pro Bluetooth extended-button remap.
+     *
+     * Maps each extended button (M1..M4, C, Z, LM, RM) to the physical key the user
+     * pressed during capture. Every entry is stored as "keyCode#scanCode" so we can
+     * identify the physical button regardless of how Android maps it. Key derived
+     * constants live in [FlydigiButtonRemapper] so the driver and UI share the same
+     * names and defaults.
+     */
+    var flydigiBtExtraButtons = mapOf<String, String>()
 
     // 麦克风设置
     var enableMic = false
@@ -583,6 +597,7 @@ class PreferenceConfiguration {
         private const val AUDIO_VIBRATION_MODE_PREF_STRING = "list_audio_vibration_mode"
         private const val AUDIO_VIBRATION_SCENE_PREF_STRING = "list_audio_vibration_scene"
         private const val FLIP_FACE_BUTTONS_PREF_STRING = "checkbox_flip_face_buttons"
+        private const val FLYDIGI_BT_EXTRA_BUTTONS_PREF_STRING = "flydigi_bt_extra_buttons_map"
         private const val LATENCY_TOAST_PREF_STRING = "checkbox_enable_post_stream_toast"
         private const val ENABLE_STUN_PREF_STRING = "checkbox_enable_stun"
         private const val LOCK_SCREEN_AFTER_DISCONNECT_PREF_STRING = "checkbox_lock_screen_after_disconnect"
@@ -1607,7 +1622,42 @@ class PreferenceConfiguration {
             config.floatBallSwipeLeftAction = prefs.getString(FLOAT_BALL_SWIPE_LEFT_ACTION_PREF_STRING, DEFAULT_FLOAT_BALL_SWIPE_LEFT_ACTION) ?: DEFAULT_FLOAT_BALL_SWIPE_LEFT_ACTION
             config.floatBallSwipeRightAction = prefs.getString(FLOAT_BALL_SWIPE_RIGHT_ACTION_PREF_STRING, DEFAULT_FLOAT_BALL_SWIPE_RIGHT_ACTION) ?: DEFAULT_FLOAT_BALL_SWIPE_RIGHT_ACTION
 
+            config.flydigiBtExtraButtons = readFlydigiBtExtraButtons(prefs)
+
             return config
+        }
+
+        /** Persist extended-button key assignments for Vader 5 Pro (Bluetooth). */
+        @JvmStatic
+        fun writeFlydigiBtExtraButtons(context: Context, map: Map<String, String>) {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context) ?: return
+            prefs.edit()
+                .putStringSet(FLYDIGI_BT_EXTRA_BUTTONS_PREF_STRING, map.toList().map { "${it.first}=${it.second}" }.toSet())
+                .apply()
+        }
+
+        /** Read the latest extended-button key assignments for Vader 5 Pro (Bluetooth). */
+        @JvmStatic
+        fun readFlydigiBtExtraButtons(context: Context): Map<String, String> {
+            val saved = readFlydigiBtExtraButtons(PreferenceManager.getDefaultSharedPreferences(context))
+            if (saved.isEmpty()) {
+                // Out of the box: M1..M4 and C/Z use the generic Android gamepad
+                // button key codes that the Vader 5 BT HID descriptor reports, so the
+                // extended buttons are remapped without requiring the capture screen.
+                return FlydigiButtonRemapper.DEFAULT_BINDINGS
+            }
+            return saved
+        }
+
+        private fun readFlydigiBtExtraButtons(prefs: SharedPreferences): Map<String, String> {
+            val raw = prefs.getStringSet(FLYDIGI_BT_EXTRA_BUTTONS_PREF_STRING, emptySet()) ?: return emptyMap()
+            val result = HashMap<String, String>(raw.size)
+            for (entry in raw) {
+                val idx = entry.indexOf('=')
+                if (idx <= 0 || idx == entry.length - 1) continue
+                result[entry.substring(0, idx)] = entry.substring(idx + 1)
+            }
+            return result
         }
     }
 }

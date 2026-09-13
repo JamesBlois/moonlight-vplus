@@ -383,6 +383,16 @@
     <string name="summary_checkbox_enable_start_key_menu">Hold Start, then choose the stream menu, gamepad mouse mode, keyboard, or performance stats. Turn off to disable this shortcut.</string>
     <string name="title_controller_diagnostic">Controller shortcut test</string>
     <string name="summary_controller_diagnostic">Learn and test controller shortcuts</string>
+
+    <!-- Flydigi Vader 5 Pro Bluetooth extended button mapping -->
+    <string name="title_flydigi_button_mapping">Map extended buttons (Vader 5 BT)</string>
+    <string name="summary_flydigi_button_mapping">Assign M1–M4, C, Z, LM and RM to keys on a keyboard or buttons on this controller. Tap an item, then press the key/button you want to bind. Press again while capturing to remove the binding.</string>
+    <string name="title_flydigi_mapping_reset">Reset to defaults</string>
+    <string name="status_flydigi_mapping_idle">Not capturing. Tap a button to map it.</string>
+    <string name="status_flydigi_mapping_capturing">Waiting 3s for a key or button press…</string>
+    <string name="status_flydigi_mapping_saved">Bound to %1$s.</string>
+    <string name="status_flydigi_mapping_removed">Binding removed.</string>
+    <string name="title_flydigi_mapping_item">%1$s: %2$s</string>
     <string name="controller_diag_title">Controller shortcut test</string>
     <string name="controller_diag_back">Back</string>
     <string name="controller_diag_refresh">Refresh</string>
